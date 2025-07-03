@@ -4,10 +4,13 @@ import json
 import time
 from streamlit_lottie import st_lottie
 
-# 🌈 Animated Background
+# ✅ Page config
+st.set_page_config(page_title="Payroll Assistant", layout="wide")
+
+# ✅ Gradient animated background
 st.markdown("""
 <style>
-body {
+[data-testid="stAppViewContainer"] {
   background: linear-gradient(-45deg, #1f4037, #99f2c8, #6a11cb, #2575fc);
   background-size: 400% 400%;
   animation: gradient 15s ease infinite;
@@ -24,34 +27,15 @@ body {
   background-color: #444;
   border-radius: 10px;
 }
-</style>
-""", unsafe_allow_html=True)
-
-st.set_page_config(page_title="Payroll Assistant", layout="wide")
-
-# ---------- Load Lottie Animation ----------
-@st.cache_data
-def load_lottieurl(url: str):
-    try:
-        r = requests.get(url)
-        if r.status_code != 200:
-            return None
-        return r.json()
-    except:
-        return None
-
-lottie_ai = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_qp1q7mct.json")
-
-# ---------- UI CSS ----------
-st.markdown("""
-<style>
 .chat-box {
-    background-color: #ffffff0a;
+    background-color: rgba(255,255,255,0.06);
     border-radius: 15px;
     padding: 20px;
     height: 500px;
     overflow-y: auto;
     margin-bottom: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.2);
 }
 .chat-bubble {
     padding: 12px 20px;
@@ -88,7 +72,20 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---------- Header ----------
+# ✅ Load Lottie animation
+@st.cache_data
+def load_lottieurl(url: str):
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
+        return None
+
+lottie_ai = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_qp1q7mct.json")
+
+# ✅ Header
 col1, col2 = st.columns([1, 5])
 with col1:
     if lottie_ai:
@@ -97,7 +94,7 @@ with col2:
     st.title("💼 Payroll Assistant Chatbot")
     st.caption("Smart answers based on your company policy")
 
-# ---------- Admin Panel ----------
+# ✅ Admin panel
 with st.sidebar:
     st.header("🔐 Admin Panel")
     pwd = st.text_input("Enter Admin Password", type="password")
@@ -107,7 +104,7 @@ with st.sidebar:
         st.session_state.admin = True
         st.success("Access Granted ✅")
 
-# ---------- Policy Load/Save ----------
+# ✅ Policy load/save
 if "policy" not in st.session_state:
     st.session_state.policy = st.secrets["DEFAULT_POLICY"]
 
@@ -115,13 +112,12 @@ if st.session_state.admin:
     st.sidebar.text_area("📝 Company Policy", value=st.session_state.policy, height=250, key="policy_editor")
     st.session_state.policy = st.session_state.policy_editor
 
-# ---------- Chat Memory ----------
+# ✅ Chat memory
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ---------- Chat UI Box ----------
+# ✅ Chat UI box
 st.markdown("### 💬 Ask your payroll question")
-
 chat_container = st.container()
 with chat_container:
     st.markdown('<div class="chat-box">', unsafe_allow_html=True)
@@ -130,14 +126,14 @@ with chat_container:
         st.markdown(f'<div class="chat-bubble {bubble_class}">{msg}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ---------- Input + Button at Bottom ----------
+# ✅ Input + send button pinned at bottom
 col_input, col_button = st.columns([5, 1])
 with col_input:
     user_input = st.text_input("Type your message", label_visibility="collapsed", key="chat_input")
 with col_button:
     send = st.button("Send")
 
-# ---------- OpenRouter API Call ----------
+# ✅ OpenRouter call
 def get_openrouter_reply(q, context):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -156,7 +152,7 @@ def get_openrouter_reply(q, context):
     except:
         return "⚠️ Unable to fetch reply. Check your key or network."
 
-# ---------- On Send ----------
+# ✅ On send
 if send and user_input.strip():
     st.session_state.chat_history.append(("user", user_input))
     with chat_container:
