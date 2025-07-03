@@ -1,18 +1,13 @@
-import streamlit as st
-import requests
-import json
-from streamlit_lottie import st_lottie
-from datetime import datetime
+import streamlit as st import requests import json from streamlit_lottie import st_lottie from datetime import datetime
 
-# ---------- PAGE CONFIGURATION ---------- #
-st.set_page_config(
-    page_title="Smart Payroll Assistant | AC Creations",
-    page_icon="🧠",
-    layout="wide"
-)
+---------- PAGE CONFIGURATION ----------
 
-# ---------- CUSTOM STYLES ---------- #
+st.set_page_config( page_title="Smart Payroll Assistant | AC Creations", page_icon="🧠", layout="wide" )
+
+---------- CUSTOM STYLES ----------
+
 st.markdown("""
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');
 
@@ -65,77 +60,59 @@ input, textarea, button {
     color: white;
 }
 
-</style>
-""", unsafe_allow_html=True)
+</style>""", unsafe_allow_html=True)
 
-# ---------- ANIMATION ---------- #
-def load_lottie_url(url):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
+---------- ANIMATION ----------
 
-lottie_url = "https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json"
-chat_lottie = load_lottie_url(lottie_url)
+def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
 
-# ---------- HEADER ---------- #
-with st.container():
-    st_lottie(chat_lottie, height=200)
-    st.markdown("""
-        <h1>Smart Payroll Assistant</h1>
-        <h4>Ask me anything related to payroll. I'm trained on your company policy!</h4>
-    """, unsafe_allow_html=True)
+lottie_url = "https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json" chat_lottie = load_lottie_url(lottie_url)
 
-# ---------- SIDEBAR (Admin Panel) ---------- #
-with st.sidebar:
-    st.header("🔐 Admin Panel")
-    password = st.text_input("Enter Admin Password", type="password")
-    if password == st.secrets["ADMIN_PASSWORD"]:
-        st.success("Admin Access Granted")
-        policy_text = st.text_area("Paste your company payroll policy below:", height=300)
-        if policy_text:
-            st.session_state["policy"] = policy_text
-    else:
-        st.info("Enter password to unlock policy access.")
+---------- HEADER ----------
 
-# ---------- CHAT STORAGE ---------- #
-if "chat" not in st.session_state:
-    st.session_state.chat = []
+with st.container(): st_lottie(chat_lottie, height=200) st.markdown(""" <h1>Smart Payroll Assistant</h1> <h4>Ask me anything related to payroll. I'm trained on your company policy!</h4> """, unsafe_allow_html=True)
 
-# ---------- MAIN CHAT INPUT ---------- #
-st.markdown("---")
-query = st.text_input("💬 Type your question", placeholder="e.g. What is the PF deduction?", key="question")
-if st.button("Send") and query:
-    st.session_state.chat.append(("user", query))
+---------- SIDEBAR (Admin Panel) ----------
 
-    headers = {
-        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-    prompt = st.session_state.get("policy", "")
-    payload = {
-        "model": "mistralai/mixtral-8x7b-instruct",
-        "messages": [
-            {"role": "system", "content": "You are a smart payroll assistant. Always give direct professional answers. Never say 'as per policy'. If unsure, reply 'Not available'."},
-            {"role": "user", "content": f"Policy:\n{prompt}\n\nQuestion: {query}"}
-        ]
-    }
+with st.sidebar: st.header("🔐 Admin Panel") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("Admin Access Granted") policy_text = st.text_area("Paste your company payroll policy below:", height=300) if policy_text: st.session_state["policy"] = policy_text else: st.info("Enter password to unlock policy access.")
 
-    try:
-        response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-        answer = response.json()["choices"][0]["message"]["content"]
-    except:
-        answer = "⚠️ Failed to get response. Check your API key."
+---------- CHAT STORAGE ----------
 
-    st.session_state.chat.append(("bot", answer))
+if "chat" not in st.session_state: st.session_state.chat = []
 
-# ---------- DISPLAY CHAT ---------- #
-for role, message in st.session_state.chat:
-    css_class = "user" if role == "user" else "bot"
-    st.markdown(f"<div class='chatbox {css_class}'><b>{'You' if role=='user' else 'Bot'}:</b> {message}</div>", unsafe_allow_html=True)
+---------- MAIN CHAT INPUT ----------
 
-# ---------- FOOTER ---------- #
+st.markdown("---") query = st.text_input("💬 Type your question", placeholder="e.g. What is the PF deduction?", key="question") if st.button("Send") and query: st.session_state.chat.append(("user", query))
+
+headers = {
+    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+    "Content-Type": "application/json"
+}
+prompt = st.session_state.get("policy", "")
+payload = {
+    "model": "mistralai/mixtral-8x7b-instruct",
+    "messages": [
+        {"role": "system", "content": "You are a smart payroll assistant. Always give direct professional answers. Never say 'as per policy'. If unsure, reply 'Not available'."},
+        {"role": "user", "content": f"Policy:\n{prompt}\n\nQuestion: {query}"}
+    ]
+}
+
+try:
+    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+    answer = response.json()["choices"][0]["message"]["content"]
+except:
+    answer = "⚠️ Failed to get response. Check your API key."
+
+st.session_state.chat.append(("bot", answer))
+
+---------- DISPLAY CHAT ----------
+
+for role, message in st.session_state.chat: css_class = "user" if role == "user" else "bot" st.markdown(f"<div class='chatbox {css_class}'><b>{'You' if role=='user' else 'Bot'}:</b> {message}</div>", unsafe_allow_html=True)
+
+---------- FOOTER ----------
+
 st.markdown("""
+
 <div class='footer'>
     © 2025 AC Creations | Powered by Streamlit + OpenRouter | Chat rendered on: {}
 </div>
