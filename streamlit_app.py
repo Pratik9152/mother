@@ -4,16 +4,16 @@ import json
 import time
 from streamlit_lottie import st_lottie
 
-# ✅ Page settings (mobile-friendly)
-st.set_page_config(page_title="Payroll Assistant", layout="centered")
+# ✅ Page configuration
+st.set_page_config(page_title="Smart Payroll Assistant", layout="centered")
 
-# ✅ Stylish animated background + smooth chat styles
+# ✅ Animated gradient background & chat styles
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-  background: linear-gradient(135deg, #1e3c72, #2a5298);
-  background-size: 200% 200%;
-  animation: gradient 12s ease infinite;
+  background: linear-gradient(-45deg, #0f0c29, #302b63, #24243e, #6a11cb, #2575fc);
+  background-size: 400% 400%;
+  animation: gradient 18s ease infinite;
   font-family: 'Segoe UI', sans-serif;
   padding-bottom: 100px;
 }
@@ -64,7 +64,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ✅ Load Lottie animation
+# ✅ Lottie animation loader
 @st.cache_data
 def load_lottieurl(url: str):
     r = requests.get(url)
@@ -72,54 +72,54 @@ def load_lottieurl(url: str):
         return None
     return r.json()
 
-lottie_icon = load_lottieurl("https://assets7.lottiefiles.com/packages/lf20_cwqf3z6q.json")
+animation = load_lottieurl("https://assets9.lottiefiles.com/packages/lf20_cg3ukhgv.json")
 
-# ✅ Welcome screen
-if lottie_icon:
-    st_lottie(lottie_icon, height=120)
-st.markdown("### 🤖 Welcome to **Payroll Assistant**")
-st.caption("⚡️ I can answer your payroll-related questions smartly as per your company's policy. Kindly begin typing below.")
+# ✅ Welcome Header
+if animation:
+    st_lottie(animation, height=100)
+st.markdown("## 🤖 Smart Payroll Chatbot")
+st.caption("✨ Ask anything related to your payroll. The bot will answer only as per company policy provided by Admin.")
 
 # ✅ Admin Panel
 with st.sidebar:
     st.header("🔐 Admin Panel")
-    pwd = st.text_input("Admin Password", type="password")
+    pwd = st.text_input("Password", type="password")
     if "admin" not in st.session_state:
         st.session_state.admin = False
     if pwd == st.secrets["ADMIN_PASSWORD"]:
         st.session_state.admin = True
         st.success("✅ Access Granted")
 
-# ✅ Policy
+# ✅ Default policy storage
 if "policy" not in st.session_state:
     st.session_state.policy = st.secrets["DEFAULT_POLICY"]
 
 if st.session_state.admin:
-    st.sidebar.text_area("✍️ Edit Payroll Policy", value=st.session_state.policy, height=300, key="policy_editor")
+    st.sidebar.text_area("📝 Enter/Update Policy", value=st.session_state.policy, height=300, key="policy_editor")
     st.session_state.policy = st.session_state.policy_editor
 
-# ✅ Chat memory
+# ✅ Chat history
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ✅ Chat box
+# ✅ Chat Display
 chat_container = st.container()
 with chat_container:
     st.markdown('<div class="chat-box">', unsafe_allow_html=True)
     for sender, msg in st.session_state.chat_history:
-        role_class = "user-msg" if sender == "user" else "bot-msg"
-        st.markdown(f'<div class="chat-bubble {role_class}">{msg}</div>', unsafe_allow_html=True)
+        role = "user-msg" if sender == "user" else "bot-msg"
+        st.markdown(f'<div class="chat-bubble {role}">{msg}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ✅ Chat input + button
+# ✅ Chat Input
 col1, col2 = st.columns([5, 1])
 with col1:
-    user_input = st.text_input("Ask your payroll query", label_visibility="collapsed", key="user_input")
+    user_input = st.text_input("Type your payroll query here", label_visibility="collapsed", key="chat_input")
 with col2:
     send = st.button("Send")
 
-# ✅ OpenRouter API call
-def get_reply_from_openrouter(q, context):
+# ✅ OpenRouter API function
+def get_reply_openrouter(query, policy_context):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
         "Content-Type": "application/json"
@@ -127,23 +127,23 @@ def get_reply_from_openrouter(q, context):
     payload = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [
-            {"role": "system", "content": f"You are a payroll assistant. Use this company policy:\n\n{context}"},
-            {"role": "user", "content": q}
+            {"role": "system", "content": f"You are a payroll assistant. Use this exact company policy:\n\n{policy_context}"},
+            {"role": "user", "content": query}
         ]
     }
     try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-        return res.json()["choices"][0]["message"]["content"]
+        r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+        return r.json()["choices"][0]["message"]["content"]
     except:
-        return "⚠️ Unable to fetch reply. Please check network/API key."
+        return "⚠️ Network/API issue. Please check and try again."
 
-# ✅ On send
+# ✅ On Message Send
 if send and user_input.strip():
     st.session_state.chat_history.append(("user", user_input))
     with chat_container:
         st.markdown(f'<div class="chat-bubble user-msg">{user_input}</div>', unsafe_allow_html=True)
         st.markdown('<div class="chat-bubble bot-msg"><div class="typing"></div></div>', unsafe_allow_html=True)
     time.sleep(1.2)
-    reply = get_reply_from_openrouter(user_input, st.session_state.policy)
-    st.session_state.chat_history.append(("bot", reply))
+    answer = get_reply_openrouter(user_input, st.session_state.policy)
+    st.session_state.chat_history.append(("bot", answer))
     st.rerun()
