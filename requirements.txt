@@ -1,0 +1,7 @@
+streamlit
+streamlit-lottie
+langchain
+openai
+pinecone-client
+faiss-cpu
+requests
