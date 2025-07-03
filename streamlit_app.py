@@ -1,119 +1,95 @@
-import streamlit as st import requests import json from streamlit_lottie import st_lottie from datetime import datetime
+import streamlit as st
+import requests
+import json
+from streamlit_lottie import st_lottie
 
----------- PAGE CONFIGURATION ----------
+# Set app config
+st.set_page_config(page_title="Smart Payroll Assistant", layout="centered")
 
-st.set_page_config( page_title="Smart Payroll Assistant | AC Creations", page_icon="🧠", layout="wide" )
-
----------- CUSTOM STYLES ----------
-
+# 🌈 Animated background + chatbot header
 st.markdown("""
-
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap');
-
-html, body, [data-testid="stAppViewContainer"]  {
-    font-family: 'Montserrat', sans-serif;
-    background: linear-gradient(-45deg, #1f1c2c, #928dab, #1f1c2c);
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-    color: white;
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(-45deg, #f857a6, #ff5858, #ffc371, #00c9ff);
+    background-size: 500% 500%;
+    animation: gradient 12s ease infinite;
+    font-family: 'Segoe UI', sans-serif;
 }
-
 @keyframes gradient {
     0% {background-position: 0% 50%;}
     50% {background-position: 100% 50%;}
     100% {background-position: 0% 50%;}
 }
-
-h1, h2, h3, h4 {
+h1 {
     color: #fff;
     text-align: center;
-    text-shadow: 2px 2px 8px #00000090;
+    font-size: 38px;
+    text-shadow: 2px 2px 5px #000;
 }
+</style>
+""", unsafe_allow_html=True)
 
-.chatbox {
-    background-color: rgba(255,255,255,0.05);
-    padding: 15px;
-    border-radius: 15px;
-    margin-bottom: 10px;
-    box-shadow: 0 0 10px rgba(255,255,255,0.1);
-    font-size: 17px;
-}
+def load_lottie_url(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
 
-.bot { background-color: rgba(0,255,200,0.1); }
-.user { background-color: rgba(255,0,180,0.1); }
+lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json")
+if lottie_bot:
+    st_lottie(lottie_bot, height=150, key="bot")
 
-.footer {
-    text-align: center;
-    font-size: 14px;
-    margin-top: 40px;
-    opacity: 0.6;
-}
+st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True)
+st.markdown("<p style='color:white; text-align:center;'>Ask anything about salary, PF, leave, F&F, bonus, and more!</p>", unsafe_allow_html=True)
 
-input, textarea, button {
-    border-radius: 10px !important;
-    font-size: 16px !important;
-}
+# 🔐 Admin panel for uploading policy
+with st.sidebar:
+    st.subheader("🔐 Admin Login")
+    password = st.text_input("Enter Admin Password", type="password")
+    if password == st.secrets["ADMIN_PASSWORD"]:
+        st.success("✅ Access Granted")
+        policy_text = st.text_area("📝 Enter or Paste Payroll Policy", height=300)
+        if policy_text:
+            st.session_state["policy_data"] = policy_text
+    else:
+        st.warning("Admin login required to update policy.")
 
-.stTextInput>div>div>input {
-    background-color: rgba(255,255,255,0.15);
-    color: white;
-}
+# 💬 Chat interaction
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-</style>""", unsafe_allow_html=True)
+query = st.text_input("💬 Type your question here...")
 
----------- ANIMATION ----------
+if st.button("Send") and query:
+    st.session_state.chat_history.append(("user", query))
 
-def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
+    policy = st.session_state.get("policy_data", "")
+    headers = {
+        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "mistralai/mixtral-8x7b-instruct",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a smart payroll assistant. Respond directly and clearly using the given policy. Avoid phrases like 'as per policy'. If info not found, say 'Not mentioned'."
+            },
+            {"role": "user", "content": f"Policy:\n{policy}\n\nQuestion: {query}"}
+        ]
+    }
 
-lottie_url = "https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json" chat_lottie = load_lottie_url(lottie_url)
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+        reply = res.json()["choices"][0]["message"]["content"]
+    except:
+        reply = "⚠️ Unable to fetch reply. Check API or internet."
 
----------- HEADER ----------
+    st.session_state.chat_history.append(("bot", reply))
 
-with st.container(): st_lottie(chat_lottie, height=200) st.markdown(""" <h1>Smart Payroll Assistant</h1> <h4>Ask me anything related to payroll. I'm trained on your company policy!</h4> """, unsafe_allow_html=True)
-
----------- SIDEBAR (Admin Panel) ----------
-
-with st.sidebar: st.header("🔐 Admin Panel") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("Admin Access Granted") policy_text = st.text_area("Paste your company payroll policy below:", height=300) if policy_text: st.session_state["policy"] = policy_text else: st.info("Enter password to unlock policy access.")
-
----------- CHAT STORAGE ----------
-
-if "chat" not in st.session_state: st.session_state.chat = []
-
----------- MAIN CHAT INPUT ----------
-
-st.markdown("---") query = st.text_input("💬 Type your question", placeholder="e.g. What is the PF deduction?", key="question") if st.button("Send") and query: st.session_state.chat.append(("user", query))
-
-headers = {
-    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-    "Content-Type": "application/json"
-}
-prompt = st.session_state.get("policy", "")
-payload = {
-    "model": "mistralai/mixtral-8x7b-instruct",
-    "messages": [
-        {"role": "system", "content": "You are a smart payroll assistant. Always give direct professional answers. Never say 'as per policy'. If unsure, reply 'Not available'."},
-        {"role": "user", "content": f"Policy:\n{prompt}\n\nQuestion: {query}"}
-    ]
-}
-
-try:
-    response = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-    answer = response.json()["choices"][0]["message"]["content"]
-except:
-    answer = "⚠️ Failed to get response. Check your API key."
-
-st.session_state.chat.append(("bot", answer))
-
----------- DISPLAY CHAT ----------
-
-for role, message in st.session_state.chat: css_class = "user" if role == "user" else "bot" st.markdown(f"<div class='chatbox {css_class}'><b>{'You' if role=='user' else 'Bot'}:</b> {message}</div>", unsafe_allow_html=True)
-
----------- FOOTER ----------
-
-st.markdown("""
-
-<div class='footer'>
-    © 2025 AC Creations | Powered by Streamlit + OpenRouter | Chat rendered on: {}
-</div>
-""".format(datetime.now().strftime("%B %d, %Y %H:%M")), unsafe_allow_html=True)
+# 📜 Display full chat history
+for sender, msg in st.session_state.chat_history:
+    if sender == "user":
+        st.markdown(f"<div style='background-color:#ffe6e6;padding:10px;border-radius:10px;margin-bottom:5px'><b>You:</b><br>{msg}</div>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<div style='background-color:#e6ffe6;padding:10px;border-radius:10px;margin-bottom:10px'><b>Bot:</b><br>{msg}</div>", unsafe_allow_html=True)
