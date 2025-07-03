@@ -1,13 +1,13 @@
-import streamlit as st
-import requests
-import json
-from streamlit_lottie import st_lottie
+import streamlit as st import requests import json from streamlit_lottie import st_lottie
 
-# Set app config
+Set app config
+
 st.set_page_config(page_title="Smart Payroll Assistant", layout="centered")
 
-# 🌈 Animated background + chatbot header
+🌈 Animated background + chatbot header
+
 st.markdown("""
+
 <style>
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(-45deg, #f857a6, #ff5858, #ffc371, #00c9ff);
@@ -26,70 +26,78 @@ h1 {
     font-size: 38px;
     text-shadow: 2px 2px 5px #000;
 }
-</style>
-""", unsafe_allow_html=True)
+.typing {
+    width: 80px;
+    height: 20px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50px;
+    position: relative;
+    animation: blink 1.5s infinite;
+}
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+.send-button {
+    background-color: #00c9ff;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+.send-button:hover {
+    background-color: #0099cc;
+}
+</style>""", unsafe_allow_html=True)
 
-def load_lottie_url(url):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
+def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
 
-lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json")
-if lottie_bot:
-    st_lottie(lottie_bot, height=150, key="bot")
+lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json") if lottie_bot: st_lottie(lottie_bot, height=150, key="bot")
 
-st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True)
-st.markdown("<p style='color:white; text-align:center;'>Ask anything about salary, PF, leave, F&F, bonus, and more!</p>", unsafe_allow_html=True)
+st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True) st.markdown("<p style='color:white; text-align:center;'>Ask anything about salary, PF, leave, F&F, bonus, and more!</p>", unsafe_allow_html=True)
 
-# 🔐 Admin panel for uploading policy
-with st.sidebar:
-    st.subheader("🔐 Admin Login")
-    password = st.text_input("Enter Admin Password", type="password")
-    if password == st.secrets["ADMIN_PASSWORD"]:
-        st.success("✅ Access Granted")
-        policy_text = st.text_area("📝 Enter or Paste Payroll Policy", height=300)
-        if policy_text:
-            st.session_state["policy_data"] = policy_text
-    else:
-        st.warning("Admin login required to update policy.")
+🔐 Admin panel for uploading policy
 
-# 💬 Chat interaction
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+with st.sidebar: st.subheader("🔐 Admin Login") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("✅ Access Granted") policy_text = st.text_area("📝 Enter or Paste Payroll Policy", height=300) if policy_text: st.session_state["policy_data"] = policy_text else: st.warning("Admin login required to update policy.")
 
-query = st.text_input("💬 Type your question here...")
+💬 Chat interaction
 
-if st.button("Send") and query:
-    st.session_state.chat_history.append(("user", query))
+if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
-    policy = st.session_state.get("policy_data", "")
-    headers = {
-        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "mistralai/mixtral-8x7b-instruct",
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are a smart payroll assistant. Respond directly and clearly using the given policy. Avoid phrases like 'as per policy'. If info not found, say 'Not mentioned'."
-            },
-            {"role": "user", "content": f"Policy:\n{policy}\n\nQuestion: {query}"}
-        ]
-    }
+query = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
 
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-        reply = res.json()["choices"][0]["message"]["content"]
-    except:
-        reply = "⚠️ Unable to fetch reply. Check API or internet."
+col1, col2 = st.columns([6, 1]) with col1: typing_animation = """<div class='typing'></div>""" st.markdown(typing_animation, unsafe_allow_html=True) with col2: send_clicked = st.button("Send", key="send", use_container_width=True)
 
-    st.session_state.chat_history.append(("bot", reply))
+if send_clicked and query: st.session_state.chat_history.append(("user", query))
 
-# 📜 Display full chat history
-for sender, msg in st.session_state.chat_history:
-    if sender == "user":
-        st.markdown(f"<div style='background-color:#ffe6e6;padding:10px;border-radius:10px;margin-bottom:5px'><b>You:</b><br>{msg}</div>", unsafe_allow_html=True)
-    else:
-        st.markdown(f"<div style='background-color:#e6ffe6;padding:10px;border-radius:10px;margin-bottom:10px'><b>Bot:</b><br>{msg}</div>", unsafe_allow_html=True)
+policy = st.session_state.get("policy_data", "")
+headers = {
+    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+    "Content-Type": "application/json"
+}
+payload = {
+    "model": "mistralai/mixtral-8x7b-instruct",
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a smart payroll assistant. Respond directly and clearly using the given policy. Avoid phrases like 'as per policy'. If info not found, say 'Not mentioned'."
+        },
+        {"role": "user", "content": f"Policy:\n{policy}\n\nQuestion: {query}"}
+    ]
+}
+
+try:
+    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+    reply = res.json()["choices"][0]["message"]["content"]
+except:
+    reply = "⚠️ Unable to fetch reply. Check API or internet."
+
+st.session_state.chat_history.append(("bot", reply))
+
+📜 Display full chat history
+
+for sender, msg in st.session_state.chat_history: bg = '#ffe6e6' if sender == 'user' else '#e6ffe6' st.markdown(f"<div style='background-color:{bg};padding:10px;border-radius:10px;margin-bottom:5px'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
+
