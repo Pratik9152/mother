@@ -4,24 +4,35 @@ import json
 import time
 from streamlit_lottie import st_lottie
 
-st.set_page_config(page_title="Payroll Assistant", layout="centered")
+st.set_page_config(page_title="Payroll Assistant", layout="wide")
 
-# ---------- Load Animation ----------
+# -------- Load Lottie Animation --------
 @st.cache_data
 def load_lottieurl(url: str):
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
+    except:
         return None
-    return r.json()
 
 lottie_ai = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_qp1q7mct.json")
 
-# ---------- UI Styling ----------
+# -------- CSS Styling --------
 st.markdown("""
     <style>
         body {
-            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
             color: white;
+        }
+        .chat-box {
+            background-color: #ffffff0a;
+            border-radius: 15px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            margin-bottom: 10px;
         }
         .chat-bubble {
             padding: 12px 20px;
@@ -32,15 +43,15 @@ st.markdown("""
             animation: fadeIn 0.3s ease-in-out;
         }
         .user-msg {
-            background-color: #00c6ff;
-            color: black;
-            text-align: right;
+            background: linear-gradient(145deg, #00c6ff, #0072ff);
+            color: #fff;
+            align-self: flex-end;
             float: right;
             clear: both;
         }
         .bot-msg {
-            background-color: #1f2937;
-            color: white;
+            background-color: #1f1f1f;
+            color: #fff;
             float: left;
             clear: both;
         }
@@ -58,16 +69,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------- Header ----------
+# -------- Header --------
 col1, col2 = st.columns([1, 5])
 with col1:
     if lottie_ai:
         st_lottie(lottie_ai, height=80)
 with col2:
-    st.title("🤖 Payroll Assistant")
+    st.title("💼 Payroll Assistant Chatbot")
     st.caption("Smart answers based on your company policy")
 
-# ---------- Admin Panel ----------
+# -------- Admin Panel --------
 with st.sidebar:
     st.header("🔐 Admin Panel")
     pwd = st.text_input("Enter Admin Password", type="password")
@@ -77,7 +88,7 @@ with st.sidebar:
         st.session_state.admin = True
         st.success("Access Granted ✅")
 
-# ---------- Policy ----------
+# -------- Policy --------
 if "policy" not in st.session_state:
     st.session_state.policy = st.secrets["DEFAULT_POLICY"]
 
@@ -85,11 +96,29 @@ if st.session_state.admin:
     st.sidebar.text_area("📝 Company Policy", value=st.session_state.policy, height=250, key="policy_editor")
     st.session_state.policy = st.session_state.policy_editor
 
-# ---------- Chat UI ----------
-st.markdown("### 💬 Ask your payroll question")
-question = st.text_input("You:", key="user_input")
+# -------- Chat State --------
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-# ---------- OpenRouter Call ----------
+# -------- Chat UI --------
+st.markdown("### 💬 Ask your payroll question")
+
+chat_container = st.container()
+with chat_container:
+    st.markdown('<div class="chat-box">', unsafe_allow_html=True)
+    for sender, msg in st.session_state.chat_history:
+        bubble_class = "user-msg" if sender == "user" else "bot-msg"
+        st.markdown(f'<div class="chat-bubble {bubble_class}">{msg}</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# -------- Input Area at Bottom --------
+col_input, col_button = st.columns([5, 1])
+with col_input:
+    user_input = st.text_input("Type your message", label_visibility="collapsed", key="chat_input")
+with col_button:
+    send = st.button("Send")
+
+# -------- OpenRouter Call --------
 def get_openrouter_reply(q, context):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -108,10 +137,13 @@ def get_openrouter_reply(q, context):
     except:
         return "⚠️ Unable to fetch reply. Check your key or network."
 
-# ---------- Show Response ----------
-if question:
-    st.markdown(f'<div class="chat-bubble user-msg">{question}</div>', unsafe_allow_html=True)
-    st.markdown('<div class="chat-bubble bot-msg"><div class="typing"></div></div>', unsafe_allow_html=True)
+# -------- Send Message --------
+if send and user_input.strip():
+    st.session_state.chat_history.append(("user", user_input))
+    with chat_container:
+        st.markdown(f'<div class="chat-bubble user-msg">{user_input}</div>', unsafe_allow_html=True)
+        st.markdown('<div class="chat-bubble bot-msg"><div class="typing"></div></div>', unsafe_allow_html=True)
     time.sleep(1.5)
-    response = get_openrouter_reply(question, st.session_state.policy)
-    st.markdown(f'<div class="chat-bubble bot-msg">{response}</div>', unsafe_allow_html=True)
+    reply = get_openrouter_reply(user_input, st.session_state.policy)
+    st.session_state.chat_history.append(("bot", reply))
+    st.rerun()
