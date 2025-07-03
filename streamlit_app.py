@@ -6,7 +6,7 @@ from streamlit_lottie import st_lottie
 
 st.set_page_config(page_title="Smart Payroll Assistant", layout="centered")
 
-# 🌈 Animated background & stylish theme
+# 🌈 World-class animated background & styles
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
@@ -26,9 +26,19 @@ h2 {
     font-weight: bold;
     font-size: 30px !important;
     text-shadow: 2px 2px 5px #000;
+    text-align: center;
 }
-span[data-baseweb="typography"] {
+.typing-header {
+    font-size: 18px;
     color: white;
+    font-weight: 600;
+    text-align: center;
+    animation: blink 1.5s infinite;
+}
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
 }
 .chat-box {
     background-color: rgba(255, 255, 255, 0.06);
@@ -72,7 +82,7 @@ span[data-baseweb="typography"] {
 </style>
 """, unsafe_allow_html=True)
 
-# ✅ Load animated icon
+# ✅ Animated welcome loader
 @st.cache_data
 def load_lottieurl(url: str):
     r = requests.get(url)
@@ -81,11 +91,11 @@ def load_lottieurl(url: str):
     return r.json()
 
 animation = load_lottieurl("https://lottie.host/ea9aa876-9171-4f07-9107-9d6bc00daed0/luhueXvlaT.json")
-
 if animation:
     st_lottie(animation, height=120)
 
 st.markdown("## 🤖 Smart Payroll Chatbot")
+st.markdown('<div class="typing-header">💬 Ask payroll-related queries. Replies are based only on company policy.</div>', unsafe_allow_html=True)
 
 # 🔐 Admin Panel
 with st.sidebar:
@@ -97,7 +107,7 @@ with st.sidebar:
         st.session_state.admin = True
         st.success("✅ Access Granted")
 
-# 📄 Policy input (admin-only)
+# 📄 Editable policy
 if "policy" not in st.session_state:
     st.session_state.policy = st.secrets["DEFAULT_POLICY"]
 
@@ -109,7 +119,7 @@ if st.session_state.admin:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# 💬 Chat Box
+# 💬 Display chat
 chat_container = st.container()
 with chat_container:
     st.markdown('<div class="chat-box">', unsafe_allow_html=True)
@@ -118,14 +128,14 @@ with chat_container:
         st.markdown(f'<div class="chat-bubble {role}">{msg}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ✅ Chat input + button
+# 🧠 Input + Send
 col1, col2 = st.columns([5, 1])
 with col1:
     user_input = st.text_input("Type your payroll question...", label_visibility="collapsed", key="chat_input")
 with col2:
     send = st.button("Send")
 
-# 🔁 Smart Reply using OpenRouter
+# 🔁 OpenRouter smart reply
 def get_reply_openrouter(query, policy_context):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -134,7 +144,7 @@ def get_reply_openrouter(query, policy_context):
     payload = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [
-            {"role": "system", "content": f"You are a smart Indian payroll assistant. Answer ONLY based on the given policy below. Do NOT reply with unrelated points. If policy is missing, say 'not mentioned'. Policy:\n{policy_context}"},
+            {"role": "system", "content": f"You are a smart Indian payroll assistant. Answer ONLY based on this policy. Do NOT include unrelated info. Say 'not mentioned' if policy is missing.\n\n{policy_context}"},
             {"role": "user", "content": query}
         ]
     }
@@ -142,7 +152,7 @@ def get_reply_openrouter(query, policy_context):
         r = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
         return r.json()["choices"][0]["message"]["content"]
     except:
-        return "⚠️ Network/API error. Please verify API key or connection."
+        return "⚠️ API/network issue. Please try again."
 
 # 🚀 On Send
 if send and user_input.strip():
