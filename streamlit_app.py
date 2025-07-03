@@ -4,9 +4,32 @@ import json
 import time
 from streamlit_lottie import st_lottie
 
+# 🌈 Animated Background
+st.markdown("""
+<style>
+body {
+  background: linear-gradient(-45deg, #1f4037, #99f2c8, #6a11cb, #2575fc);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+@keyframes gradient {
+  0% {background-position: 0% 50%;}
+  50% {background-position: 100% 50%;}
+  100% {background-position: 0% 50%;}
+}
+*::-webkit-scrollbar {
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.set_page_config(page_title="Payroll Assistant", layout="wide")
 
-# -------- Load Lottie Animation --------
+# ---------- Load Lottie Animation ----------
 @st.cache_data
 def load_lottieurl(url: str):
     try:
@@ -19,57 +42,53 @@ def load_lottieurl(url: str):
 
 lottie_ai = load_lottieurl("https://assets10.lottiefiles.com/packages/lf20_qp1q7mct.json")
 
-# -------- CSS Styling --------
+# ---------- UI CSS ----------
 st.markdown("""
-    <style>
-        body {
-            background: linear-gradient(to right, #0f0c29, #302b63, #24243e);
-            color: white;
-        }
-        .chat-box {
-            background-color: #ffffff0a;
-            border-radius: 15px;
-            padding: 20px;
-            height: 500px;
-            overflow-y: auto;
-            margin-bottom: 10px;
-        }
-        .chat-bubble {
-            padding: 12px 20px;
-            border-radius: 15px;
-            margin: 10px 0;
-            max-width: 80%;
-            display: inline-block;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-        .user-msg {
-            background: linear-gradient(145deg, #00c6ff, #0072ff);
-            color: #fff;
-            align-self: flex-end;
-            float: right;
-            clear: both;
-        }
-        .bot-msg {
-            background-color: #1f1f1f;
-            color: #fff;
-            float: left;
-            clear: both;
-        }
-        .typing {
-            width: 50px;
-            height: 20px;
-            display: inline-block;
-            background: url('https://i.ibb.co/Fz1F2vR/typing-loader.gif') no-repeat center;
-            background-size: contain;
-        }
-        @keyframes fadeIn {
-            from {opacity: 0; transform: translateY(10px);}
-            to {opacity: 1; transform: translateY(0);}
-        }
-    </style>
+<style>
+.chat-box {
+    background-color: #ffffff0a;
+    border-radius: 15px;
+    padding: 20px;
+    height: 500px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+.chat-bubble {
+    padding: 12px 20px;
+    border-radius: 15px;
+    margin: 10px 0;
+    max-width: 80%;
+    display: inline-block;
+    animation: fadeIn 0.3s ease-in-out;
+}
+.user-msg {
+    background: linear-gradient(145deg, #00c6ff, #0072ff);
+    color: #fff;
+    align-self: flex-end;
+    float: right;
+    clear: both;
+}
+.bot-msg {
+    background-color: #1f1f1f;
+    color: #fff;
+    float: left;
+    clear: both;
+}
+.typing {
+    width: 50px;
+    height: 20px;
+    display: inline-block;
+    background: url('https://i.ibb.co/Fz1F2vR/typing-loader.gif') no-repeat center;
+    background-size: contain;
+}
+@keyframes fadeIn {
+    from {opacity: 0; transform: translateY(10px);}
+    to {opacity: 1; transform: translateY(0);}
+}
+</style>
 """, unsafe_allow_html=True)
 
-# -------- Header --------
+# ---------- Header ----------
 col1, col2 = st.columns([1, 5])
 with col1:
     if lottie_ai:
@@ -78,7 +97,7 @@ with col2:
     st.title("💼 Payroll Assistant Chatbot")
     st.caption("Smart answers based on your company policy")
 
-# -------- Admin Panel --------
+# ---------- Admin Panel ----------
 with st.sidebar:
     st.header("🔐 Admin Panel")
     pwd = st.text_input("Enter Admin Password", type="password")
@@ -88,7 +107,7 @@ with st.sidebar:
         st.session_state.admin = True
         st.success("Access Granted ✅")
 
-# -------- Policy --------
+# ---------- Policy Load/Save ----------
 if "policy" not in st.session_state:
     st.session_state.policy = st.secrets["DEFAULT_POLICY"]
 
@@ -96,11 +115,11 @@ if st.session_state.admin:
     st.sidebar.text_area("📝 Company Policy", value=st.session_state.policy, height=250, key="policy_editor")
     st.session_state.policy = st.session_state.policy_editor
 
-# -------- Chat State --------
+# ---------- Chat Memory ----------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# -------- Chat UI --------
+# ---------- Chat UI Box ----------
 st.markdown("### 💬 Ask your payroll question")
 
 chat_container = st.container()
@@ -111,14 +130,14 @@ with chat_container:
         st.markdown(f'<div class="chat-bubble {bubble_class}">{msg}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# -------- Input Area at Bottom --------
+# ---------- Input + Button at Bottom ----------
 col_input, col_button = st.columns([5, 1])
 with col_input:
     user_input = st.text_input("Type your message", label_visibility="collapsed", key="chat_input")
 with col_button:
     send = st.button("Send")
 
-# -------- OpenRouter Call --------
+# ---------- OpenRouter API Call ----------
 def get_openrouter_reply(q, context):
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -137,7 +156,7 @@ def get_openrouter_reply(q, context):
     except:
         return "⚠️ Unable to fetch reply. Check your key or network."
 
-# -------- Send Message --------
+# ---------- On Send ----------
 if send and user_input.strip():
     st.session_state.chat_history.append(("user", user_input))
     with chat_container:
