@@ -4,7 +4,7 @@ import json
 from streamlit_lottie import st_lottie 
 from datetime import datetime
 
----------- PAGE CONFIGURATION ----------
+#---------- PAGE CONFIGURATION ----------
 
 st.set_page_config( page_title="Smart Payroll Assistant | AC Creations", page_icon="🧠", layout="wide" )
 
