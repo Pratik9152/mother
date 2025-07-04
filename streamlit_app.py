@@ -4,7 +4,7 @@ Set page configuration
 
 st.set_page_config(page_title="Smart Payroll Chatbot", layout="centered")
 
-#Custom styles: 3D gradient background, typing animation, bubble tails
+Custom styles: 3D gradient background, typing animation, bubble tails
 
 st.markdown("""
 
@@ -90,21 +90,19 @@ Chat history state
 
 if "chat_history" not in st.session_state: st.session_state.chat_history = [] if "is_typing" not in st.session_state: st.session_state.is_typing = False
 
-Display chat
-
-for sender, msg in st.session_state.chat_history: role_class = "user-bubble" if sender == "user" else "bot-bubble" st.markdown(f"<div class='message {role_class}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
-
-Typing indicator
-
-if st.session_state.is_typing: st.markdown("<div class='typing-animation'>Bot is typing...</div>", unsafe_allow_html=True)
-
 Floating input at bottom
 
 with st.container(): st.markdown("<div class='input-container'>", unsafe_allow_html=True) user_input = st.text_input("", placeholder="Type your payroll question...", key="chatbox_fixed") send_click = st.button("Send", key="send_fixed") st.markdown("</div>", unsafe_allow_html=True)
 
 if send_click and user_input: st.session_state.chat_history.append(("user", user_input)) st.session_state.is_typing = True st.experimental_rerun()
 
-if st.session_state.is_typing: query = st.session_state.chat_history[-1][1] combined_policy = f"{st.secrets.get('DEFAULT_POLICY', '')}\n{st.session_state.get('policy_data', '')}" headers = { "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}", "Content-Type": "application/json" } payload = { "model": "mistralai/mixtral-8x7b-instruct", "messages": [ {"role": "system", "content": "You are a smart Indian payroll assistant. Be clear. No 'as per policy'."}, {"role": "user", "content": f"Policy:\n{combined_policy}\n\nQuestion: {query}"} ] } try: res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15) reply = res.json()["choices"][0]["message"]["content"] except: reply = "⚠️ Could not respond."
+Display chat
+
+for sender, msg in st.session_state.chat_history: role_class = "user-bubble" if sender == "user" else "bot-bubble" st.markdown(f"<div class='message {role_class}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
+
+Typing indicator
+
+if st.session_state.is_typing: st.markdown("<div class='typing-animation'>Bot is typing...</div>", unsafe_allow_html=True) query = st.session_state.chat_history[-1][1] combined_policy = f"{st.secrets.get('DEFAULT_POLICY', '')}\n{st.session_state.get('policy_data', '')}" headers = { "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}", "Content-Type": "application/json" } payload = { "model": "mistralai/mixtral-8x7b-instruct", "messages": [ {"role": "system", "content": "You are a smart Indian payroll assistant. Be clear. No 'as per policy'."}, {"role": "user", "content": f"Policy:\n{combined_policy}\n\nQuestion: {query}"} ] } try: res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15) reply = res.json()["choices"][0]["message"]["content"] except: reply = "⚠️ Could not respond."
 
 st.session_state.chat_history.append(("bot", reply))
 st.session_state.is_typing = False
