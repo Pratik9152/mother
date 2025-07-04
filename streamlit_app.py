@@ -51,21 +51,6 @@ st.markdown("""
     box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
     margin-right: 10px;
 }
-.input-container {
-    position: fixed;
-    bottom: 1.5rem;
-    left: 2rem;
-    right: 2rem;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 15px;
-    padding: 12px;
-    backdrop-filter: blur(6px);
-    z-index: 999;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 0 10px rgba(0,0,0,0.3);
-}
 .typing-animation {
     font-style: italic;
     color: #eeeeee;
@@ -77,13 +62,13 @@ st.markdown("""
     50% {opacity: 0.4;}
 }
 input[type="text"] {
-    flex-grow: 1;
     padding: 10px;
     border-radius: 10px;
     border: none;
     font-size: 16px;
     margin-right: 10px;
     color: #000;
+    width: 100%;
 }
 button[kind="primary"] {
     background-color: #00BFA6 !important;
@@ -137,18 +122,18 @@ if st.session_state.is_typing:
     st.markdown("<div class='typing-animation'>Bot is typing...</div>", unsafe_allow_html=True)
 
 # ---------------------- INPUT SECTION ----------------------
-st.markdown("<div class='input-container'>", unsafe_allow_html=True)
-user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
-send_click = st.button("Send", key="send")
-st.markdown("</div>", unsafe_allow_html=True)
+with st.form(key="chat_form", clear_on_submit=True):
+    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    send_click = st.form_submit_button("Send")
 
 if send_click and user_input:
     st.session_state.chat_history.append(("user", user_input))
     st.session_state.is_typing = True
+    st.session_state.user_query = user_input
     st.rerun()
 
-if st.session_state.is_typing:
-    query = st.session_state.chat_history[-1][1]
+if st.session_state.is_typing and "user_query" in st.session_state:
+    query = st.session_state.user_query
     combined_policy = f"{st.secrets.get('DEFAULT_POLICY', '')}\n{st.session_state.get('policy_data', '')}"
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -169,6 +154,5 @@ if st.session_state.is_typing:
 
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
-    st.session_state["chatbox"] = ""  # 💡 Clear input after sending
-    st.rerun()
+    del st.session_state.user_query
     st.rerun()
