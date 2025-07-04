@@ -8,7 +8,7 @@ from datetime import datetime
 
 st.set_page_config( page_title="Smart Payroll Assistant | AC Creations", page_icon="🧠", layout="wide" )
 
----------- CUSTOM STYLES ----------
+#---------- CUSTOM STYLES ----------
 
 st.markdown("""
 
@@ -115,19 +115,19 @@ lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb76
 
 st.markdown("<h1>🤖 Smart Payroll Chatbot</h1>", unsafe_allow_html=True) st.markdown("<p style='color:white; text-align:center;'>Ask anything about salary, PF, leave, F&F, bonus, and more!</p>", unsafe_allow_html=True)
 
----------- CHAT STORAGE ----------
+#---------- CHAT STORAGE ----------
 
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
----------- ADMIN PANEL (Update Policy) ----------
+#---------- ADMIN PANEL (Update Policy) ----------
 
 with st.sidebar: st.subheader("🔐 Admin Panel") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("✅ Access Granted") policy_text = st.text_area("📝 Enter or Paste Payroll Policy", height=300) if policy_text: st.session_state["policy_data"] = policy_text else: st.info("Enter password to unlock policy access.")
 
----------- CHAT UI (Display History) ----------
+#---------- CHAT UI (Display History) ----------
 
 st.markdown("<div class='chat-container'>", unsafe_allow_html=True) for role, msg in st.session_state.chat_history: css_class = "user-bubble" if role == "user" else "bot-bubble" avatar = "<div class='avatar'>You</div>" if role == 'user' else "<div class='avatar'>Bot</div>" st.markdown(f"<div class='input-row'>{avatar}<div class='chat-bubble {css_class}'>{msg}</div></div>", unsafe_allow_html=True) st.markdown("</div>", unsafe_allow_html=True)
 
----------- CHAT INPUT AT BOTTOM ----------
+#---------- CHAT INPUT AT BOTTOM ----------
 
 query = st.text_input("💬 Ask Payroll Questions Here...") if st.button("Send", key="send", use_container_width=True) and query: st.session_state.chat_history.append(("user", query))
 
