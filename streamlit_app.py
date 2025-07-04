@@ -1,4 +1,8 @@
-import streamlit as st import requests import json from streamlit_lottie import st_lottie from datetime import datetime
+import streamlit as st
+import requests
+import json 
+from streamlit_lottie import st_lottie 
+from datetime import datetime
 
 ---------- PAGE CONFIGURATION ----------
 
