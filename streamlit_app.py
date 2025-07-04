@@ -109,7 +109,7 @@ if lottie_bot:
 st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True)
 st.markdown("<p style='color:white;'>Ask about PF, F&F, Gratuity, Bonus, Salary, LTA etc.</p>", unsafe_allow_html=True)
 
-# ---------------------- SIDEBAR ----------------------
+# ---------------------- SIDEBAR ADMIN ----------------------
 with st.sidebar:
     st.subheader("🔐 Admin Login")
     password = st.text_input("Enter Admin Password", type="password")
@@ -127,22 +127,22 @@ if "chat_history" not in st.session_state:
 if "extra_policy" not in st.session_state:
     st.session_state.extra_policy = ""
 
-# ---------------------- CHAT DISPLAY ----------------------
+# ---------------------- DISPLAY CHAT ----------------------
 for sender, msg in st.session_state.chat_history:
     css = "user-bubble" if sender == "user" else "bot-bubble"
     st.markdown(f"<div class='message {css}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
 
-# ---------------------- INPUT ----------------------
+# ---------------------- INPUT BOX ----------------------
 st.markdown("<div class='input-container'>", unsafe_allow_html=True)
 query = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
 send = st.button("Send")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# ---------------------- HANDLE SEND ----------------------
+# ---------------------- HANDLE MESSAGE ----------------------
 if send and query:
     st.session_state.chat_history.append(("user", query))
 
-    # Combine DEFAULT + ADMIN policy
+    # Combine DEFAULT + extra policy
     policy_combined = st.secrets.get("DEFAULT_POLICY", "") + "\n" + st.session_state.get("extra_policy", "")
 
     headers = {
@@ -152,16 +152,19 @@ if send and query:
     payload = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [
-            {"role": "system", "content": "You are a smart Indian payroll assistant. Be clear. No 'as per policy'. If info not found, give best answer based on Indian payroll law."},
+            {
+                "role": "system",
+                "content": "You are a smart Indian payroll assistant. Be very clear. Don't say 'as per policy'. If nothing is found, still try your best based on Indian payroll knowledge."
+            },
             {"role": "user", "content": f"Policy:\n{policy_combined}\n\nQuestion: {query}"}
         ]
     }
 
     try:
         res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=20)
-        answer = res.json()["choices"][0]["message"]["content"]
+        reply = res.json()["choices"][0]["message"]["content"]
     except:
-        answer = "⚠️ Could not fetch reply."
+        reply = "⚠️ Could not fetch reply."
 
-    st.session_state.chat_history.append(("bot", answer))
-    st.experimental_set_query_params(refresh="true")  # trick to refresh cleanly
+    st.session_state.chat_history.append(("bot", reply))
+    st.query_params.clear()  # Clean reset (no deprecated method)
