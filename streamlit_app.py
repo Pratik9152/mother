@@ -4,7 +4,7 @@ Set page configuration
 
 st.set_page_config(page_title="Smart Payroll Chatbot", layout="centered")
 
-Custom styles: 3D gradient background, typing animation, bubble tails
+#Custom styles: 3D gradient background, typing animation, bubble tails
 
 st.markdown("""
 
