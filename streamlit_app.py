@@ -10,9 +10,9 @@ st.markdown("""
 
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(-45deg, #f857a6, #ff5858, #ffc371, #00c9ff);
+    background: linear-gradient(-45deg, #00c9ff, #92fe9d, #f857a6, #ff5858);
     background-size: 500% 500%;
-    animation: gradient 12s ease infinite;
+    animation: gradient 15s ease infinite;
     font-family: 'Segoe UI', sans-serif;
 }
 @keyframes gradient {
@@ -33,6 +33,7 @@ h1 {
     border-radius: 50px;
     position: relative;
     animation: blink 1.5s infinite;
+    margin: 5px auto;
 }
 @keyframes blink {
     0%, 100% { opacity: 1; }
@@ -47,57 +48,37 @@ h1 {
     font-weight: bold;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 5px;
 }
 .send-button:hover {
     background-color: #0099cc;
 }
 </style>""", unsafe_allow_html=True)
 
-def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
+Load animated bot
+
+@st.cache_data(show_spinner=False) def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
 
 lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json") if lottie_bot: st_lottie(lottie_bot, height=150, key="bot")
 
 st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True) st.markdown("<p style='color:white; text-align:center;'>Ask anything about salary, PF, leave, F&F, bonus, and more!</p>", unsafe_allow_html=True)
 
-🔐 Admin panel for uploading policy
-
-with st.sidebar: st.subheader("🔐 Admin Login") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("✅ Access Granted") policy_text = st.text_area("📝 Enter or Paste Payroll Policy", height=300) if policy_text: st.session_state["policy_data"] = policy_text else: st.warning("Admin login required to update policy.")
-
-💬 Chat interaction
+Store chat
 
 if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
-query = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
-
-col1, col2 = st.columns([6, 1]) with col1: typing_animation = """<div class='typing'></div>""" st.markdown(typing_animation, unsafe_allow_html=True) with col2: send_clicked = st.button("Send", key="send", use_container_width=True)
-
-if send_clicked and query: st.session_state.chat_history.append(("user", query))
-
-policy = st.session_state.get("policy_data", "")
-headers = {
-    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "model": "mistralai/mixtral-8x7b-instruct",
-    "messages": [
-        {
-            "role": "system",
-            "content": "You are a smart payroll assistant. Respond directly and clearly using the given policy. Avoid phrases like 'as per policy'. If info not found, say 'Not mentioned'."
-        },
-        {"role": "user", "content": f"Policy:\n{policy}\n\nQuestion: {query}"}
-    ]
-}
-
-try:
-    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-    reply = res.json()["choices"][0]["message"]["content"]
-except:
-    reply = "⚠️ Unable to fetch reply. Check API or internet."
-
-st.session_state.chat_history.append(("bot", reply))
-
-📜 Display full chat history
+Show chat history first
 
 for sender, msg in st.session_state.chat_history: bg = '#ffe6e6' if sender == 'user' else '#e6ffe6' st.markdown(f"<div style='background-color:{bg};padding:10px;border-radius:10px;margin-bottom:5px'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
+
+Input + send button
+
+query = st.text_input("", placeholder="Type your payroll question here...", key="chatbox") col1, col2 = st.columns([6, 1]) with col1: st.markdown("""<div class='typing'></div>""", unsafe_allow_html=True) with col2: send_clicked = st.button("Send", key="send", use_container_width=True)
+
+Send query
+
+if send_clicked and query: st.session_state.chat_history.append(("user", query)) policy = st.secrets.get("DEFAULT_POLICY", "") headers = { "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}", "Content-Type": "application/json" } payload = { "model": "mistralai/mixtral-8x7b-instruct", "messages": [ { "role": "system", "content": "You are a smart payroll assistant. Answer directly and clearly from the company policy. Do not say 'as per policy'. Say 'Not mentioned' if unsure." }, {"role": "user", "content": f"Policy:\n{policy}\n\nQuestion: {query}"} ] } try: res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload)) reply = res.json()["choices"][0]["message"]["content"] except: reply = "⚠️ Unable to fetch reply. Check API or internet."
+
+st.session_state.chat_history.append(("bot", reply))
 
