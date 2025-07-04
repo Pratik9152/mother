@@ -1,17 +1,13 @@
-import streamlit as st 
-import requests 
-import json 
+import streamlit as st
+import requests
+import json
 from streamlit_lottie import st_lottie
-from datetime import datetime
 
----------- PAGE CONFIGURATION ----------
-
+# ---------- PAGE CONFIGURATION ---------- #
 st.set_page_config(page_title="Smart Payroll Chatbot", layout="centered")
 
----------- CUSTOM STYLES ----------
-
+# ---------- CUSTOM STYLES ---------- #
 st.markdown("""
-
 <style>
 [data-testid="stAppViewContainer"] {
     background: linear-gradient(-45deg, #1e1e60, #283e51, #485563);
@@ -68,53 +64,79 @@ button[kind="primary"] {
     color: black !important;
     font-weight: bold;
 }
-</style>""", unsafe_allow_html=True)
+</style>
+""", unsafe_allow_html=True)
 
----------- LOAD LOTTIE ANIMATION ----------
+# ---------- LOAD LOTTIE ANIMATION ---------- #
+def load_lottie_url(url):
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    return r.json()
 
-def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
+lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json")
+if lottie_bot:
+    st_lottie(lottie_bot, height=150, key="bot")
 
-lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json") if lottie_bot: st_lottie(lottie_bot, height=150, key="bot")
+st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True)
+st.markdown("<p style='color:white;'>Ask anything related to Indian payroll: PF, LTA, gratuity, F&F, bonus, salary.</p>", unsafe_allow_html=True)
 
-st.markdown("## 🤖 <span style='color:white;'>Smart Payroll Chatbot</span>", unsafe_allow_html=True) st.markdown("<p style='color:white;'>Ask anything related to Indian payroll: PF, LTA, gratuity, F&F, bonus, salary.</p>", unsafe_allow_html=True)
+# ---------- ADMIN PANEL ---------- #
+with st.sidebar:
+    st.subheader("🔐 Admin Login")
+    password = st.text_input("Enter Admin Password", type="password")
+    if password == st.secrets["ADMIN_PASSWORD"]:
+        st.success("✅ Access Granted")
+        policy_text = st.text_area("📝 Paste Additional Payroll Policy", height=300)
+        if policy_text:
+            st.session_state["policy_data"] = policy_text
+    else:
+        st.warning("Admin login required to edit policy.")
 
----------- ADMIN PANEL ----------
+# ---------- CHAT HISTORY STATE ---------- #
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
-with st.sidebar: st.subheader("🔐 Admin Login") password = st.text_input("Enter Admin Password", type="password") if password == st.secrets["ADMIN_PASSWORD"]: st.success("✅ Access Granted") policy_text = st.text_area("📝 Paste Additional Payroll Policy", height=300) if policy_text: st.session_state["policy_data"] = policy_text else: st.warning("Admin login required to edit policy.")
+# ---------- DISPLAY CHAT HISTORY ---------- #
+for sender, msg in st.session_state.chat_history:
+    role_class = "user-bubble" if sender == "user" else "bot-bubble"
+    st.markdown(f"<div class='message {role_class}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
 
----------- CHAT HISTORY STATE ----------
+# ---------- CHAT INPUT & RESPONSE ---------- #
+st.markdown("<div class='input-container'>", unsafe_allow_html=True)
+user_input = st.text_input("Ask payroll question...", key="chatbox_fixed")
+if st.button("Send", key="send_fixed") and user_input:
+    st.session_state.chat_history.append(("user", user_input))
 
-if "chat_history" not in st.session_state: st.session_state.chat_history = []
+    # Combine default + admin policy
+    base_policy = st.secrets.get("DEFAULT_POLICY", "")
+    admin_policy = st.session_state.get("policy_data", "")
+    combined_policy = f"{base_policy}\n{admin_policy}".strip()
 
----------- DISPLAY CHAT HISTORY ----------
+    headers = {
+        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "mistralai/mixtral-8x7b-instruct",
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are a smart payroll assistant. Answer only payroll-related questions for India. Be short, helpful, and do not say 'as per policy'. If unknown, say 'Not mentioned'."
+            },
+            {
+                "role": "user",
+                "content": f"Policy:\n{combined_policy}\n\nQuestion: {user_input}"
+            }
+        ]
+    }
 
-for sender, msg in st.session_state.chat_history: role_class = "user-bubble" if sender == "user" else "bot-bubble" st.markdown(f"<div class='message {role_class}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
+        reply = res.json()["choices"][0]["message"]["content"]
+    except:
+        reply = "⚠️ Could not respond."
 
----------- CHAT INPUT & RESPONSE ----------
-
-st.markdown("<div class='input-container'>", unsafe_allow_html=True) user_input = st.text_input("Ask payroll question...", key="chatbox_fixed") if st.button("Send", key="send_fixed") and user_input: st.session_state.chat_history.append(("user", user_input))
-
-# Combine default and admin policy
-combined_policy = f"{st.secrets.get('DEFAULT_POLICY', '')}\n{st.session_state.get('policy_data', '')}"
-headers = {
-    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-    "Content-Type": "application/json"
-}
-payload = {
-    "model": "mistralai/mixtral-8x7b-instruct",
-    "messages": [
-        {"role": "system", "content": "You are a smart payroll assistant. Only answer Indian payroll-related queries. Be short, helpful, and say 'Not mentioned' if unsure."},
-        {"role": "user", "content": f"Policy:\n{combined_policy}\n\nQuestion: {user_input}"}
-    ]
-}
-
-try:
-    res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-    reply = res.json()["choices"][0]["message"]["content"]
-except:
-    reply = "⚠️ Could not respond."
-
-st.session_state.chat_history.append(("bot", reply))
+    st.session_state.chat_history.append(("bot", reply))
 
 st.markdown("</div>", unsafe_allow_html=True)
-
