@@ -169,4 +169,6 @@ if st.session_state.is_typing:
 
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
+    st.session_state["chatbox"] = ""  # 💡 Clear input after sending
+    st.rerun()
     st.rerun()
