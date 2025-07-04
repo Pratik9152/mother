@@ -1,20 +1,20 @@
-import streamlit as st
-import requests
-import json
-from streamlit_lottie import st_lottie
+import streamlit as st import requests import json from streamlit_lottie import st_lottie
 
-# ---------------- Page Setup ---------------- #
-st.set_page_config(page_title="Smart Payroll Bot", layout="centered")
+--- PAGE CONFIG ---
+
+st.set_page_config(page_title="Smart Payroll Assistant", layout="centered")
+
+--- STYLING ---
 
 st.markdown("""
+
 <style>
-body {
-    font-family: 'Segoe UI', sans-serif;
-}
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(45deg, #9fbaa0, #1c92d2, #f2fcfe);
-    background-size: 600% 600%;
-    animation: gradient 20s ease infinite;
+    background: linear-gradient(135deg, #6439ff, #ff4d6d);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+    font-family: 'Segoe UI', sans-serif;
+    color: white;
 }
 @keyframes gradient {
     0% {background-position: 0% 50%;}
@@ -22,120 +22,112 @@ body {
     100% {background-position: 0% 50%;}
 }
 h1 {
+    color: #fff;
     text-align: center;
-    color: white;
-    text-shadow: 1px 1px 3px black;
+    font-size: 38px;
+    text-shadow: 2px 2px 5px #000;
 }
-.bot-bubble {
-    background-color: #e1ffc7;
-    border-radius: 20px 20px 20px 5px;
-    padding: 10px;
-    margin: 5px 0;
-    width: fit-content;
-    max-width: 90%;
-    display: flex;
-    align-items: flex-start;
+.chat-bubble {
+    padding: 12px;
+    margin: 8px;
+    max-width: 80%;
+    border-radius: 12px;
+    position: relative;
+    font-size: 16px;
 }
 .user-bubble {
     background-color: #dcf8c6;
-    border-radius: 20px 20px 5px 20px;
-    padding: 10px;
-    margin: 5px 0;
+    color: #000;
     align-self: flex-end;
-    width: fit-content;
-    max-width: 90%;
+    border-bottom-right-radius: 0;
+}
+.bot-bubble {
+    background-color: #ffffffb0;
+    color: #000;
+    align-self: flex-start;
+    border-bottom-left-radius: 0;
 }
 .avatar {
+    display: inline-block;
     width: 32px;
     height: 32px;
+    background: #6f42c1;
     border-radius: 50%;
-    margin-right: 8px;
-}
-.chat-row {
-    display: flex;
-    align-items: flex-start;
-}
-.user .chat-row {
-    justify-content: flex-end;
+    text-align: center;
+    line-height: 32px;
+    color: white;
+    font-weight: bold;
+    margin-right: 6px;
 }
 .typing {
-    margin-top: 5px;
-    font-size: 12px;
-    color: white;
+    width: 80px;
+    height: 20px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50px;
+    animation: blink 1.5s infinite;
+    margin-left: 8px;
 }
-</style>
-""", unsafe_allow_html=True)
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+.send-button {
+    background-color: #00c9ff;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+}
+.send-button:hover {
+    background-color: #0099cc;
+}
+</style>""", unsafe_allow_html=True)
 
-# --------- Load Animation --------- #
-def load_lottie_url(url):
-    r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
+--- ANIMATION ---
 
-lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json")
-if lottie_bot:
-    st_lottie(lottie_bot, height=160, key="paybot")
+def load_lottie_url(url): r = requests.get(url) if r.status_code != 200: return None return r.json()
 
-st.markdown("<h1>🤖 Smart Payroll Chatbot</h1>", unsafe_allow_html=True)
+lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json") if lottie_bot: st_lottie(lottie_bot, height=140, key="bot")
 
-# ------------- Admin Panel ------------ #
-with st.sidebar:
-    st.subheader("🔐 Admin Panel")
-    pwd = st.text_input("Admin Password", type="password")
-    if pwd == st.secrets["ADMIN_PASSWORD"]:
-        st.success("Access Granted")
-        policy = st.text_area("✍️ Update Payroll Policy", height=300)
-        if policy:
-            st.session_state["policy"] = policy
+st.markdown("## 🤖 <span style='color:white;'>Payroll Assistant</span>", unsafe_allow_html=True) st.markdown("<p style='color:white; text-align:center;'>Ask about salary, PF, leave, F&F, and more!</p>", unsafe_allow_html=True)
 
-# ------------- Load Policy ------------- #
-if "policy" not in st.session_state:
-    st.session_state["policy"] = st.secrets["DEFAULT_POLICY"]
+--- CHAT STATE ---
 
-# ------------- Chat History ------------- #
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+if "chat_history" not in st.session_state: st.session_state.chat_history = []
 
-query = st.text_input("💬 Ask Payroll Question", placeholder="e.g., Who is payroll HOD?")
+--- CHAT INPUT ---
 
-if st.button("Send") and query:
-    st.session_state.chat_history.append(("user", query))
+query = st.text_input("", placeholder="Type your payroll question here...", key="chatbox") send_clicked = st.button("Send", key="send", type="primary")
 
-    headers = {
-        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-    prompt = st.session_state["policy"]
+--- RESPONSE HANDLER ---
 
-    payload = {
-        "model": "mistralai/mixtral-8x7b-instruct",
-        "messages": [
-            {"role": "system", "content": "You are a smart payroll assistant. Answer directly using the given policy. Never say 'as per policy'. If not found, say 'Not mentioned'."},
-            {"role": "user", "content": f"Policy:\n{prompt}\n\nQuestion: {query}"}
-        ]
-    }
+if send_clicked and query: st.session_state.chat_history.append(("user", query))
 
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload))
-        reply = res.json()["choices"][0]["message"]["content"]
-    except:
-        reply = "⚠️ API error. Try again."
+headers = {
+    "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+    "Content-Type": "application/json"
+}
+prompt = st.secrets.get("DEFAULT_POLICY", "")
+payload = {
+    "model": "mistralai/mixtral-8x7b-instruct",
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a professional Indian payroll assistant. Respond clearly. Avoid phrases like 'as per policy'. If not found, say 'Not mentioned'."
+        },
+        {"role": "user", "content": f"Policy:
 
-    st.session_state.chat_history.append(("bot", reply))
+{prompt}
 
-# ---------- Chat UI (WhatsApp style) ---------- #
-for sender, msg in st.session_state.chat_history:
-    if sender == "user":
-        st.markdown(f"""
-        <div class="user chat-row">
-            <div class="user-bubble">{msg}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown(f"""
-        <div class="chat-row">
-            <img src="https://cdn-icons-png.flaticon.com/512/4712/4712107.png" class="avatar"/>
-            <div class="bot-bubble">{msg}</div>
-        </div>
-        """, unsafe_allow_html=True)
+Question: {query}"} ] } try: res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload)) reply = res.json()["choices"][0]["message"]["content"] except: reply = "⚠️ Unable to fetch reply. Check your API key."
+
+st.session_state.chat_history.append(("bot", reply))
+
+--- DISPLAY MESSAGES ---
+
+for sender, msg in st.session_state.chat_history: avatar = "<div class='avatar'>U</div>" if sender == 'user' else "<div class='avatar'>B</div>" bubble_class = "user-bubble" if sender == 'user' else "bot-bubble" st.markdown(f"<div style='display:flex;align-items:flex-start;margin-top:10px'>{avatar}<div class='chat-bubble {bubble_class}'>{msg}</div></div>", unsafe_allow_html=True)
+
