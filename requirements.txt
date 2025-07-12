@@ -5,3 +5,6 @@ openai
 pinecone-client
 faiss-cpu
 requests
+requests
+PyPDF2
+
