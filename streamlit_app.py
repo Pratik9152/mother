@@ -109,6 +109,8 @@ if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
 if "clear_input" not in st.session_state:
     st.session_state.clear_input = False
+if "chatbox" not in st.session_state:
+    st.session_state.chatbox = ""
 
 # ---------------------- CHAT DISPLAY ----------------------
 for sender, msg in st.session_state.chat_history:
@@ -125,8 +127,8 @@ with col2:
     send_clicked = st.button("Send")
 
 if st.session_state.get("clear_input", False):
+    st.session_state.chatbox = ""
     st.session_state.clear_input = False
-    st.experimental_rerun()
 
 # ---------------------- SMART FNF DETECT ----------------------
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
