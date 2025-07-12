@@ -14,10 +14,11 @@ st.set_page_config(page_title="Payroll Assistant", layout="wide")
 st.markdown("""
 <script>
 function scrollToBottom() {
-    var body = window.parent.document.querySelector('.main');
-    body.scrollTop = body.scrollHeight;
+    var chat = window.parent.document.querySelector('.main');
+    if(chat) chat.scrollTop = chat.scrollHeight;
 }
-setTimeout(scrollToBottom, 1500);
+window.addEventListener("load", scrollToBottom);
+setTimeout(scrollToBottom, 800);
 </script>
 """, unsafe_allow_html=True)
 
@@ -80,12 +81,6 @@ st.markdown("""
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
 }
-.send-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 20px;
-    align-items: center;
-}
 input[type="text"] {
     padding: 10px;
     border-radius: 10px;
@@ -93,11 +88,15 @@ input[type="text"] {
     width: 100%;
     font-size: 16px;
 }
-button {
-    background: #128C7E;
+.stTextInput > div > div > input {
+    background-color: #fff;
+    color: black;
+}
+.stButton button {
+    background: #25D366 !important;
     border: none;
     color: white;
-    padding: 10px 16px;
+    padding: 10px 20px;
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
@@ -124,7 +123,7 @@ if st.session_state.is_typing:
 # ---------------------- CHAT INPUT ----------------------
 col1, col2 = st.columns([6, 1])
 with col1:
-    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox", value="")
 with col2:
     send_clicked = st.button("Send")
 
@@ -139,14 +138,15 @@ if user_input and ("fnf" in user_input.lower() or "full and final" in user_input
         st.session_state.chat_history.append(("user", pdf_text))
         st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
         st.session_state.is_typing = True
-        st.rerun()
+        st.experimental_rerun()
 
 # ---------------------- API CALL ----------------------
-if send_clicked and user_input:
-    st.session_state.chat_history.append(("user", user_input))
+if send_clicked and user_input.strip():
+    query = user_input.strip()
+    st.session_state.chat_history.append(("user", query))
     st.session_state.is_typing = True
-    st.session_state.user_query = user_input
-    st.rerun()
+    st.session_state.user_query = query
+    st.experimental_rerun()
 
 if st.session_state.is_typing and "user_query" in st.session_state:
     query = st.session_state.user_query.strip()
@@ -160,10 +160,10 @@ if st.session_state.is_typing and "user_query" in st.session_state:
         translated_query = query
         user_lang = "en"
 
-    time.sleep(1.5)  # Simulate typing delay
+    time.sleep(1.2)
 
-    if query.lower() in ["hi", "hello", "hey"]:
-        reply = "Hi there! 👋 I’m your smart Payroll Assistant. You can ask me about your salary breakup, F&F status, tax deductions, reimbursements, and anything related to payroll policies."
+    if query.lower() in ["hi", "hello", "hey", "ok", "okay"]:
+        reply = "👋 Hello! I'm your Payroll Assistant. Ask me anything about salary, PF, tax, or Full & Final."
     else:
         headers = {
             "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
@@ -172,7 +172,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
         payload = {
             "model": "mistralai/mixtral-8x7b-instruct",
             "messages": [
-                {"role": "system", "content": "You are a smart payroll assistant trained on both company and Indian payroll policy. Be brief, clear, and avoid repeating 'as per policy'.\n" + policy_text},
+                {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Answer briefly and clearly. Avoid repeating full policies unless asked.\n" + policy_text},
                 {"role": "user", "content": translated_query}
             ]
         }
@@ -187,7 +187,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
     del st.session_state.user_query
-    st.rerun()
+    st.experimental_rerun()
 
 # ---------------------- SIDEBAR ----------------------
 st.sidebar.markdown("---")
