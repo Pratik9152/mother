@@ -5,6 +5,7 @@ import PyPDF2
 from streamlit_lottie import st_lottie
 import base64
 from deep_translator import GoogleTranslator
+import time
 
 # ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Payroll Assistant", layout="wide")
@@ -125,14 +126,10 @@ col1, col2 = st.columns([6, 1])
 with col1:
     user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
 with col2:
-    if st.button("Send") and user_input:
-        st.session_state.chat_history.append(("user", user_input))
-        st.session_state.is_typing = True
-        st.session_state.user_query = user_input
-        st.rerun()
+    send_clicked = st.button("Send")
 
 # ---------------------- SMART FNF DETECT ----------------------
-if "fnf" in user_input.lower() or "full and final" in user_input.lower():
+if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
     st.markdown("### 📎 Upload your Full & Final Statement for analysis")
     pdf_file = st.file_uploader("Upload PDF", type="pdf")
     if pdf_file:
@@ -145,16 +142,25 @@ if "fnf" in user_input.lower() or "full and final" in user_input.lower():
         st.rerun()
 
 # ---------------------- API CALL ----------------------
+if send_clicked and user_input:
+    st.session_state.chat_history.append(("user", user_input))
+    st.session_state.is_typing = True
+    st.session_state.user_query = user_input
+    st.rerun()
+
 if st.session_state.is_typing and "user_query" in st.session_state:
     query = st.session_state.user_query.strip()
     policy_text = st.secrets.get("DEFAULT_POLICY", "")
 
     try:
-        translated_query = GoogleTranslator(source='auto', target='en').translate(query)
-        user_lang = GoogleTranslator(source='auto', target='en').source
+        translator = GoogleTranslator(source='auto', target='en')
+        translated_query = translator.translate(query)
+        user_lang = translator.source
     except:
         translated_query = query
         user_lang = "en"
+
+    time.sleep(1.5)  # Simulate typing delay
 
     if query.lower() in ["hi", "hello", "hey"]:
         reply = "Hi there! 👋 I’m your smart Payroll Assistant. You can ask me about your salary breakup, F&F status, tax deductions, reimbursements, and anything related to payroll policies."
