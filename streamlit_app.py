@@ -108,6 +108,8 @@ if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
 if "chatbox" not in st.session_state:
     st.session_state.chatbox = ""
+if "clear_input" not in st.session_state:
+    st.session_state.clear_input = False
 
 # ---------------------- CHAT DISPLAY ----------------------
 for sender, msg in st.session_state.chat_history:
@@ -119,12 +121,14 @@ if st.session_state.is_typing:
 # ---------------------- CHAT INPUT ----------------------
 col1, col2 = st.columns([6, 1])
 with col1:
-    st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    if st.session_state.clear_input:
+        st.session_state.chatbox = ""
+        st.session_state.clear_input = False
 with col2:
     send_clicked = st.button("Send")
 
 # ---------------------- SMART FNF DETECT ----------------------
-user_input = st.session_state.chatbox
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
     st.markdown("### 📎 Upload your Full & Final Statement for analysis")
     pdf_file = st.file_uploader("Upload PDF", type="pdf")
@@ -147,7 +151,7 @@ if send_clicked and user_input.strip():
         st.session_state.chat_history.append(("user", query))
         st.session_state.is_typing = True
         st.session_state.user_query = query
-    st.session_state.chatbox = ""
+    st.session_state.clear_input = True
     st.rerun()
 
 if st.session_state.is_typing and "user_query" in st.session_state:
