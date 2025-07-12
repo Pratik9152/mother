@@ -81,13 +81,6 @@ st.markdown("""
     0%, 100% { opacity: 1; }
     50% { opacity: 0.4; }
 }
-input[type="text"] {
-    padding: 10px;
-    border-radius: 10px;
-    border: none;
-    width: 100%;
-    font-size: 16px;
-}
 .stTextInput > div > div > input {
     background-color: #fff;
     color: black;
@@ -100,6 +93,7 @@ input[type="text"] {
     border-radius: 8px;
     cursor: pointer;
     font-weight: bold;
+    width: 100%;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -123,7 +117,7 @@ if st.session_state.is_typing:
 # ---------------------- CHAT INPUT ----------------------
 col1, col2 = st.columns([6, 1])
 with col1:
-    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox", value="")
+    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
 with col2:
     send_clicked = st.button("Send")
 
@@ -138,7 +132,7 @@ if user_input and ("fnf" in user_input.lower() or "full and final" in user_input
         st.session_state.chat_history.append(("user", pdf_text))
         st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
         st.session_state.is_typing = True
-        st.experimental_rerun()
+        st.rerun()
 
 # ---------------------- API CALL ----------------------
 if send_clicked and user_input.strip():
@@ -146,7 +140,8 @@ if send_clicked and user_input.strip():
     st.session_state.chat_history.append(("user", query))
     st.session_state.is_typing = True
     st.session_state.user_query = query
-    st.experimental_rerun()
+    st.session_state.chatbox = ""
+    st.rerun()
 
 if st.session_state.is_typing and "user_query" in st.session_state:
     query = st.session_state.user_query.strip()
@@ -187,7 +182,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
     del st.session_state.user_query
-    st.experimental_rerun()
+    st.rerun()
 
 # ---------------------- SIDEBAR ----------------------
 st.sidebar.markdown("---")
