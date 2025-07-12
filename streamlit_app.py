@@ -124,9 +124,9 @@ with col1:
 with col2:
     send_clicked = st.button("Send")
 
-if st.session_state.clear_input:
-    st.session_state.chatbox = ""
+if st.session_state.get("clear_input", False):
     st.session_state.clear_input = False
+    st.experimental_rerun()
 
 # ---------------------- SMART FNF DETECT ----------------------
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
@@ -139,7 +139,8 @@ if user_input and ("fnf" in user_input.lower() or "full and final" in user_input
         st.session_state.chat_history.append(("user", pdf_text))
         st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
         st.session_state.is_typing = True
-        st.rerun()
+        st.session_state.clear_input = True
+        st.experimental_rerun()
 
 # ---------------------- API CALL ----------------------
 if send_clicked and user_input.strip():
@@ -152,7 +153,7 @@ if send_clicked and user_input.strip():
         st.session_state.is_typing = True
         st.session_state.user_query = query
     st.session_state.clear_input = True
-    st.rerun()
+    st.experimental_rerun()
 
 if st.session_state.is_typing and "user_query" in st.session_state:
     query = st.session_state.user_query.strip()
@@ -190,7 +191,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
     del st.session_state.user_query
-    st.rerun()
+    st.experimental_rerun()
 
 # ---------------------- SIDEBAR ----------------------
 st.sidebar.markdown("---")
