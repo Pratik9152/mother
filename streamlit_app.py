@@ -152,7 +152,6 @@ if send_clicked and user_input.strip():
 
 if st.session_state.is_typing and st.session_state.user_query:
     query = st.session_state.user_query.strip()
-    policy_text = st.secrets.get("DEFAULT_POLICY", "")
     try:
         translator = GoogleTranslator(source='auto', target='en')
         translated_query = translator.translate(query)
@@ -169,7 +168,24 @@ if st.session_state.is_typing and st.session_state.user_query:
     payload = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [
-            {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Avoid repeating full policies unless asked. Respond conversationally."},
+            {"role": "system", "content": '''
+You are a professional payroll assistant trained on both company-specific and Indian payroll policy. Be polite, answer only what's asked, and avoid giving full policy unless requested.
+
+Company Payroll Team:
+- Head of Payroll: Shilpa Nimkar
+- Managers: Shailesh Rane, Kanak Pawar
+- Officer: Harshali Gawande
+- Sr. Assistant: Chinmay Sakharkar
+- Assistant: Pratik Tekawade
+
+Important points:
+- PF is 12% of Basic.
+- LTA bills are required for claims.
+- Salary is paid on last working day.
+- Gratuity after 5 years of service.
+- Working hours: 10 AM – 5 PM core, weekly 42.5 hours mandatory.
+- Flexi hours exist but require HOD permission.
+'''},
             {"role": "user", "content": translated_query}
         ]
     }
