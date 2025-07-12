@@ -4,11 +4,11 @@ import json
 import PyPDF2
 from streamlit_lottie import st_lottie
 import base64
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 
 # ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Payroll Assistant", layout="wide")
-translator = Translator()
+translator = GoogleTranslator(source='auto', target='en')
 
 # ---------------------- CUSTOM SCROLL ANCHOR ----------------------
 st.markdown("""
@@ -107,7 +107,7 @@ button {
 
 # ---------------------- HEADER ----------------------
 st.markdown("## 🤖 <span style='color:white;'>Payroll Assistant</span>", unsafe_allow_html=True)
-st.markdown("<p style='color:white;'>Ask in Hindi, Marathi, or English — I’ll answer everything about PF, LTA, F&F, Salary, or Gratuity.</p>", unsafe_allow_html=True)
+st.markdown("<p style='color:white;'>Ask in any language — I’ll answer everything about PF, LTA, F&F, Salary, or Gratuity.</p>", unsafe_allow_html=True)
 
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
@@ -149,9 +149,9 @@ if "fnf" in user_input.lower() or "full and final" in user_input.lower():
 if st.session_state.is_typing and "user_query" in st.session_state:
     query = st.session_state.user_query.strip()
     policy_text = st.secrets.get("DEFAULT_POLICY", "")
-    detected_lang = translator.detect(query).lang
+    detected_lang = GoogleTranslator(source='auto', target='en').detect(query)
     if detected_lang != "en":
-        translated_query = translator.translate(query, dest="en").text
+        translated_query = GoogleTranslator(source='auto', target='en').translate(query)
     else:
         translated_query = query
 
@@ -173,7 +173,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
             res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15)
             reply = res.json()["choices"][0]["message"]["content"]
             if detected_lang != "en":
-                reply = translator.translate(reply, dest=detected_lang).text
+                reply = GoogleTranslator(source='en', target=detected_lang).translate(reply)
         except:
             reply = "⚠️ Sorry, something went wrong."
 
