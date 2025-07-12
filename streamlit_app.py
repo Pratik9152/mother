@@ -119,11 +119,12 @@ if st.session_state.is_typing:
 # ---------------------- CHAT INPUT ----------------------
 col1, col2 = st.columns([6, 1])
 with col1:
-    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
 with col2:
     send_clicked = st.button("Send")
 
 # ---------------------- SMART FNF DETECT ----------------------
+user_input = st.session_state.chatbox
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
     st.markdown("### 📎 Upload your Full & Final Statement for analysis")
     pdf_file = st.file_uploader("Upload PDF", type="pdf")
@@ -139,9 +140,13 @@ if user_input and ("fnf" in user_input.lower() or "full and final" in user_input
 # ---------------------- API CALL ----------------------
 if send_clicked and user_input.strip():
     query = user_input.strip()
-    st.session_state.chat_history.append(("user", query))
-    st.session_state.is_typing = True
-    st.session_state.user_query = query
+    if query.lower() in ["hi", "hello", "hey", "ok", "okay"]:
+        st.session_state.chat_history.append(("user", query))
+        st.session_state.chat_history.append(("bot", "👋 Hello! I'm your Payroll Assistant. Ask me anything about salary, PF, tax, or Full & Final."))
+    else:
+        st.session_state.chat_history.append(("user", query))
+        st.session_state.is_typing = True
+        st.session_state.user_query = query
     st.session_state.chatbox = ""
     st.rerun()
 
@@ -159,27 +164,24 @@ if st.session_state.is_typing and "user_query" in st.session_state:
 
     time.sleep(1.2)
 
-    if query.lower() in ["hi", "hello", "hey", "ok", "okay"]:
-        reply = "👋 Hello! I'm your Payroll Assistant. Ask me anything about salary, PF, tax, or Full & Final."
-    else:
-        headers = {
-            "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "mistralai/mixtral-8x7b-instruct",
-            "messages": [
-                {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Answer briefly and clearly. Avoid repeating full policies unless asked.\n" + policy_text},
-                {"role": "user", "content": translated_query}
-            ]
-        }
-        try:
-            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15)
-            reply = res.json()["choices"][0]["message"]["content"]
-            if user_lang != "en":
-                reply = GoogleTranslator(source='en', target=user_lang).translate(reply)
-        except:
-            reply = "⚠️ Sorry, something went wrong."
+    headers = {
+        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "mistralai/mixtral-8x7b-instruct",
+        "messages": [
+            {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Answer briefly and clearly. Avoid repeating full policies unless asked.\n" + policy_text},
+            {"role": "user", "content": translated_query}
+        ]
+    }
+    try:
+        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15)
+        reply = res.json()["choices"][0]["message"]["content"]
+        if user_lang != "en":
+            reply = GoogleTranslator(source='en', target=user_lang).translate(reply)
+    except:
+        reply = "⚠️ Sorry, something went wrong."
 
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
