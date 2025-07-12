@@ -106,6 +106,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
+if "chatbox" not in st.session_state:
+    st.session_state.chatbox = ""
 
 # ---------------------- CHAT DISPLAY ----------------------
 for sender, msg in st.session_state.chat_history:
