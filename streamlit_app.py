@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import json
-import fitz  # PyMuPDF
+import PyPDF2
 from streamlit_lottie import st_lottie
 
 # ---------------------- PAGE CONFIG ----------------------
@@ -100,8 +100,8 @@ st.markdown("### 📄 Upload F&F Statement (PDF) for Smart Check")
 pdf_file = st.file_uploader("Upload F&F PDF", type="pdf")
 
 if pdf_file:
-    doc = fitz.open(stream=pdf_file.read(), filetype="pdf")
-    pdf_text = "\n".join([page.get_text() for page in doc])
+    reader = PyPDF2.PdfReader(pdf_file)
+    pdf_text = "\n".join([page.extract_text() or "" for page in reader.pages])
     st.session_state.chat_history.append(("user", "Analyze this full and final settlement statement as per company and Indian payroll policy:"))
     st.session_state.chat_history.append(("user", pdf_text))
     st.session_state.is_typing = True
