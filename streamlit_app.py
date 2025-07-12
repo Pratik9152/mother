@@ -103,14 +103,14 @@ st.markdown("## 🤖 <span style='color:white;'>Payroll Assistant</span>", unsaf
 st.markdown("<p style='color:white;'>Ask in any language — I’ll answer everything about PF, LTA, F&F, Salary, or Gratuity.</p>", unsafe_allow_html=True)
 
 # ---------------------- INIT SESSION STATE ----------------------
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
-if "is_typing" not in st.session_state:
-    st.session_state.is_typing = False
-if "clear_input" not in st.session_state:
-    st.session_state.clear_input = False
-if "chatbox" not in st.session_state:
-    st.session_state.chatbox = ""
+for k, v in {
+    "chat_history": [],
+    "is_typing": False,
+    "clear_input": False,
+    "user_query": ""
+}.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 # ---------------------- CHAT DISPLAY ----------------------
 for sender, msg in st.session_state.chat_history:
@@ -122,14 +122,9 @@ if st.session_state.is_typing:
 # ---------------------- CHAT INPUT ----------------------
 col1, col2 = st.columns([6, 1])
 with col1:
-    user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
+    user_input = st.text_input("", placeholder="Type your payroll question here...", key="user_input")
 with col2:
     send_clicked = st.button("Send")
-
-if st.session_state.get("clear_input", False):
-    st.session_state.chatbox = ""
-    st.session_state.clear_input = False
-    st.stop()
 
 # ---------------------- SMART FNF DETECT ----------------------
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
@@ -142,26 +137,22 @@ if user_input and ("fnf" in user_input.lower() or "full and final" in user_input
         st.session_state.chat_history.append(("user", pdf_text))
         st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
         st.session_state.is_typing = True
-        st.session_state.clear_input = True
-        st.stop()
+        st.rerun()
 
 # ---------------------- API CALL ----------------------
 if send_clicked and user_input.strip():
     query = user_input.strip()
+    st.session_state.chat_history.append(("user", query))
     if query.lower() in ["hi", "hello", "hey", "ok", "okay"]:
-        st.session_state.chat_history.append(("user", query))
-        st.session_state.chat_history.append(("bot", "👋 Hello! I'm your Payroll Assistant. Ask me anything about salary, PF, tax, or Full & Final."))
+        st.session_state.chat_history.append(("bot", "👋 Hello! I'm your Payroll Assistant. Ask me about salary, PF, F&F, reimbursements, tax or anything payroll-related."))
     else:
-        st.session_state.chat_history.append(("user", query))
-        st.session_state.is_typing = True
         st.session_state.user_query = query
-    st.session_state.clear_input = True
-    st.stop()
+        st.session_state.is_typing = True
+    st.rerun()
 
-if st.session_state.is_typing and "user_query" in st.session_state:
+if st.session_state.is_typing and st.session_state.user_query:
     query = st.session_state.user_query.strip()
     policy_text = st.secrets.get("DEFAULT_POLICY", "")
-
     try:
         translator = GoogleTranslator(source='auto', target='en')
         translated_query = translator.translate(query)
@@ -171,7 +162,6 @@ if st.session_state.is_typing and "user_query" in st.session_state:
         user_lang = "en"
 
     time.sleep(1.2)
-
     headers = {
         "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
         "Content-Type": "application/json"
@@ -179,7 +169,7 @@ if st.session_state.is_typing and "user_query" in st.session_state:
     payload = {
         "model": "mistralai/mixtral-8x7b-instruct",
         "messages": [
-            {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Answer briefly and clearly. Avoid repeating full policies unless asked.\n" + policy_text},
+            {"role": "system", "content": "You are a smart payroll assistant trained on company and Indian payroll policy. Avoid repeating full policies unless asked. Respond conversationally."},
             {"role": "user", "content": translated_query}
         ]
     }
@@ -193,8 +183,8 @@ if st.session_state.is_typing and "user_query" in st.session_state:
 
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
-    del st.session_state.user_query
-    st.stop()
+    st.session_state.user_query = ""
+    st.rerun()
 
 # ---------------------- SIDEBAR ----------------------
 st.sidebar.markdown("---")
