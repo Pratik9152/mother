@@ -102,12 +102,11 @@ st.markdown("""
 st.markdown("## 🤖 <span style='color:white;'>Payroll Assistant</span>", unsafe_allow_html=True)
 st.markdown("<p style='color:white;'>Ask in any language — I’ll answer everything about PF, LTA, F&F, Salary, or Gratuity.</p>", unsafe_allow_html=True)
 
+# ---------------------- INIT SESSION STATE ----------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
-if "chatbox" not in st.session_state:
-    st.session_state.chatbox = ""
 if "clear_input" not in st.session_state:
     st.session_state.clear_input = False
 
@@ -122,11 +121,12 @@ if st.session_state.is_typing:
 col1, col2 = st.columns([6, 1])
 with col1:
     user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
-    if st.session_state.clear_input:
-        st.session_state.chatbox = ""
-        st.session_state.clear_input = False
 with col2:
     send_clicked = st.button("Send")
+
+if st.session_state.clear_input:
+    st.session_state.chatbox = ""
+    st.session_state.clear_input = False
 
 # ---------------------- SMART FNF DETECT ----------------------
 if user_input and ("fnf" in user_input.lower() or "full and final" in user_input.lower()):
