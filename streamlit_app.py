@@ -3,32 +3,35 @@ import requests
 import json
 import PyPDF2
 from streamlit_lottie import st_lottie
+import base64
+from googletrans import Translator
 
 # ---------------------- PAGE CONFIG ----------------------
 st.set_page_config(page_title="Payroll Assistant", layout="wide")
+translator = Translator()
 
-# ---------------------- LOAD LOTTIE ----------------------
-def load_lottie_url(url):
-    try:
-        r = requests.get(url)
-        if r.status_code != 200:
-            return None
-        return r.json()
-    except:
-        return None
-
-lottie_bot = load_lottie_url("https://lottie.host/f06a7f33-dff7-4d5a-a3b3-29cb765cd3f5/VHYJ6Ykr8G.json")
+# ---------------------- CUSTOM SCROLL ANCHOR ----------------------
+st.markdown("""
+<script>
+function scrollToBottom() {
+    var body = window.parent.document.querySelector('.main');
+    body.scrollTop = body.scrollHeight;
+}
+setTimeout(scrollToBottom, 1500);
+</script>
+""", unsafe_allow_html=True)
 
 # ---------------------- STYLES ----------------------
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"] {
-    background: linear-gradient(-45deg, #1f4037, #99f2c8, #a18cd1, #fbc2eb);
-    background-size: 800% 800%;
-    animation: gradientBG 30s ease infinite;
+    background: linear-gradient(-45deg, #ff9a9e, #fad0c4, #fbc2eb, #a6c1ee);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
     font-family: 'Segoe UI', sans-serif;
     color: white;
     padding: 2rem;
+    overflow-x: hidden;
 }
 @keyframes gradientBG {
     0% {background-position: 0% 50%;}
@@ -44,13 +47,18 @@ st.markdown("""
     position: relative;
     word-wrap: break-word;
     font-size: 16px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 .bot-bubble {
-    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    background: #f0f0f0;
     color: #000;
     border-bottom-left-radius: 0;
     margin-left: 10px;
-    box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
     align-self: flex-start;
 }
 .user-bubble {
@@ -58,102 +66,129 @@ st.markdown("""
     color: white;
     border-bottom-right-radius: 0;
     margin-right: 10px;
-    box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
     align-self: flex-end;
     margin-left: auto;
 }
 .typing-animation {
-    font-style: italic;
-    color: #eeeeee;
-    padding-left: 15px;
+    display: inline-block;
+    margin-left: 12px;
     animation: blink 1.5s infinite;
+    color: #eeeeee;
 }
 @keyframes blink {
-    0%, 100% {opacity: 1;}
-    50% {opacity: 0.4;}
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+.send-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    align-items: center;
+}
+input[type="text"] {
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    width: 100%;
+    font-size: 16px;
+}
+button {
+    background: #128C7E;
+    border: none;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
 }
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------- HEADER ----------------------
-if lottie_bot:
-    st_lottie(lottie_bot, height=140, key="bot")
 st.markdown("## 🤖 <span style='color:white;'>Payroll Assistant</span>", unsafe_allow_html=True)
-st.markdown("<p style='color:white;'>Ask any question about salary, F&F, PF, tax, LTA, payroll law, ESIC, or Indian HR compliance.</p>", unsafe_allow_html=True)
+st.markdown("<p style='color:white;'>Ask in Hindi, Marathi, or English — I’ll answer everything about PF, LTA, F&F, Salary, or Gratuity.</p>", unsafe_allow_html=True)
 
-# ---------------------- SESSION STATE ----------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "is_typing" not in st.session_state:
     st.session_state.is_typing = False
 
-# ---------------------- DISPLAY CHAT ----------------------
+# ---------------------- CHAT DISPLAY ----------------------
 for sender, msg in st.session_state.chat_history:
     role_class = "user-bubble" if sender == "user" else "bot-bubble"
     st.markdown(f"<div class='message {role_class}'><b>{'You' if sender=='user' else 'Bot'}:</b><br>{msg}</div>", unsafe_allow_html=True)
-
 if st.session_state.is_typing:
-    st.markdown("<div class='typing-animation'>Bot is typing...</div>", unsafe_allow_html=True)
-
-# ---------------------- F&F PDF ANALYSIS ----------------------
-st.markdown("### 📄 Upload F&F Statement (PDF) for Smart Check")
-pdf_file = st.file_uploader("Upload F&F PDF", type="pdf")
-
-if pdf_file:
-    reader = PyPDF2.PdfReader(pdf_file)
-    pdf_text = "\n".join([page.extract_text() or "" for page in reader.pages])
-    st.session_state.chat_history.append(("user", "Analyze this full and final settlement statement as per company and Indian payroll policy:"))
-    st.session_state.chat_history.append(("user", pdf_text))
-    st.session_state.is_typing = True
-    st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
-    st.rerun()
+    st.markdown("<div class='typing-animation'>🤖 Bot is typing...</div>", unsafe_allow_html=True)
 
 # ---------------------- CHAT INPUT ----------------------
-with st.form(key="chat_form", clear_on_submit=True):
+col1, col2 = st.columns([6, 1])
+with col1:
     user_input = st.text_input("", placeholder="Type your payroll question here...", key="chatbox")
-    send_click = st.form_submit_button("Send")
+with col2:
+    if st.button("Send") and user_input:
+        st.session_state.chat_history.append(("user", user_input))
+        st.session_state.is_typing = True
+        st.session_state.user_query = user_input
+        st.rerun()
 
-if send_click and user_input:
-    st.session_state.chat_history.append(("user", user_input))
-    st.session_state.is_typing = True
-    st.session_state.user_query = user_input
-    st.rerun()
+# ---------------------- SMART FNF DETECT ----------------------
+if "fnf" in user_input.lower() or "full and final" in user_input.lower():
+    st.markdown("### 📎 Upload your Full & Final Statement for analysis")
+    pdf_file = st.file_uploader("Upload PDF", type="pdf")
+    if pdf_file:
+        reader = PyPDF2.PdfReader(pdf_file)
+        pdf_text = "\n".join([page.extract_text() or "" for page in reader.pages])
+        st.session_state.chat_history.append(("user", "Analyze this full and final settlement:"))
+        st.session_state.chat_history.append(("user", pdf_text))
+        st.session_state.user_query = f"Analyze this full and final settlement:\n\n{pdf_text}"
+        st.session_state.is_typing = True
+        st.rerun()
 
 # ---------------------- API CALL ----------------------
 if st.session_state.is_typing and "user_query" in st.session_state:
-    query = st.session_state.user_query
+    query = st.session_state.user_query.strip()
     policy_text = st.secrets.get("DEFAULT_POLICY", "")
+    detected_lang = translator.detect(query).lang
+    if detected_lang != "en":
+        translated_query = translator.translate(query, dest="en").text
+    else:
+        translated_query = query
 
-    headers = {
-        "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": "mistralai/mixtral-8x7b-instruct",
-        "messages": [
-            {"role": "system", "content": "You are a payroll assistant trained on both the official company policy and Indian government payroll laws. Always answer clearly using both sources as reference.\n\n" + policy_text},
-            {"role": "user", "content": query}
-        ]
-    }
-    try:
-        res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15)
-        reply = res.json()["choices"][0]["message"]["content"]
-    except:
-        reply = "⚠️ Sorry, something went wrong."
+    if query.lower() in ["hi", "hello", "hey"]:
+        reply = "Hi there! 👋 I’m your smart Payroll Assistant. You can ask me about your salary breakup, F&F status, tax deductions, reimbursements, and anything related to payroll policies."
+    else:
+        headers = {
+            "Authorization": f"Bearer {st.secrets['OPENROUTER_API_KEY']}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": "mistralai/mixtral-8x7b-instruct",
+            "messages": [
+                {"role": "system", "content": "You are a smart payroll assistant trained on both company and Indian payroll policy. Be brief, clear, and avoid repeating 'as per policy'.\n" + policy_text},
+                {"role": "user", "content": translated_query}
+            ]
+        }
+        try:
+            res = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, data=json.dumps(payload), timeout=15)
+            reply = res.json()["choices"][0]["message"]["content"]
+            if detected_lang != "en":
+                reply = translator.translate(reply, dest=detected_lang).text
+        except:
+            reply = "⚠️ Sorry, something went wrong."
 
     st.session_state.chat_history.append(("bot", reply))
     st.session_state.is_typing = False
     del st.session_state.user_query
     st.rerun()
 
-# ---------------------- PAYROLL TEAM INFO PAGE ----------------------
+# ---------------------- SIDEBAR ----------------------
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 👥 Payroll Team")
-st.sidebar.markdown("**Head of Department:**\n- Shilpa Nimkar")
+st.sidebar.markdown("**HOD:** Shilpa Nimkar")
 st.sidebar.markdown("**Managers:**\n- Shailesh Rane\n- Kanak Pawar")
-st.sidebar.markdown("**Officer:**\n- Harshali Gawande")
-st.sidebar.markdown("**Senior Assistant:**\n- Chinmay Sakharkar")
-st.sidebar.markdown("**Assistant:**\n- Pratik Tekawade")
-
+st.sidebar.markdown("**Officer:** Harshali Gawande")
+st.sidebar.markdown("**Sr. Assistant:** Chinmay Sakharkar")
+st.sidebar.markdown("**Assistant:** Pratik Tekawade")
 st.sidebar.markdown("---")
-st.sidebar.markdown("For any escalations, contact the Payroll Team via official mail.")
+st.sidebar.markdown("💬 Ask me anything about salary, PF, tax, reimbursements, F&F, or ESIC. Available in Hindi, Marathi, or English.")
